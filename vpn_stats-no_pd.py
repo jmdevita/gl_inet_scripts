@@ -1,7 +1,6 @@
 from speedtest import Speedtest, ConfigRetrievalError
 import requests, json, os
 from dotenv import load_dotenv
-import pandas as pd
 #from tqdm import tqdm
 import mariadb
 import sys
@@ -20,7 +19,9 @@ client_list = \
     requests.get('http://{router_url}/cgi-bin/api/wireguard/client/list'.format(router_url=router_url), \
 		headers={'Authorization': token})
 client_peers = [ sub['name'] for sub in json.loads(client_list.text)['peers'] ]
-
+# Stop any running VPN processes
+requests.get('http://{router_url}/cgi-bin/api/wireguard/client/stop'.format(router_url=router_url), \
+		headers={'Authorization': token})
 # %%
 name_list = []
 ping_list = []
@@ -59,14 +60,6 @@ for client in client_peers:
         download_list.append(0)
         upload_list.append(0)
 
-
-client_list = pd.DataFrame({
-    "name": name_list,
-    "ping": ping_list,
-    "download": download_list,
-    "upload": upload_list
-})
-
 best_vpn = name_list[ping_list.index(min(ping_list))]
 
 requests.post('http://{router_url}/cgi-bin/api/wireguard/client/start'.format(router_url=router_url), \
@@ -96,11 +89,11 @@ cur.execute(
     "TRUNCATE vpn_stats"
 )
 
-for index, row in client_list.iterrows():
+for index in enumerate(name_list):
     cur.execute(
         "INSERT INTO vpn_stats (Name, Ping, Download, Upload) VALUES ('{n}', {p}, {d}, {u})".format(
-        n=row['name'], p=round(row['ping'],2), \
-        d=round(row['download'],2), u=round(row['upload'],2)
+        n=name_list[index], p=round(ping_list[index],2), \
+        d=round(download_list[index],2), u=round(upload_list[index],2)
         )
     )
 

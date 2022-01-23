@@ -30,10 +30,12 @@ directory = os.fsencode(directory_name)
 
 for file in os.listdir(directory):
     file_path = os.fsdecode(file)
+    if file_path.startswith('.'):
+            continue
 
     listen_port = randint(51820, 65535)
     server_name = user_input_name + "_" + re.findall('-([^.]+).', file_path)[0]
-    config.readfp(open(directory_name + '/' + file_path))
+    config.read_file(open(directory_name + '/' + file_path))
     # Interface Vars
     private_key = config.get('Interface', 'PrivateKey')
     address = config.get('Interface', 'Address')
@@ -61,6 +63,7 @@ for file in os.listdir(directory):
     post_response = json.loads(client_add_response.text)['code']
 
     if post_response != 0:
-        raise client_add_response.text
+        print(client_add_response.text)
+        exit()
 
 shutil.rmtree(directory_name)
